@@ -18,7 +18,7 @@ const caches = {}
 let allChannels
 
 module.exports = {
-  site: 'osn.com',
+  site: 'osn_legacy',
   days: 2,
   async url({ date }) {
     return (await getUrlData(date)).url
