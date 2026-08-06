@@ -65,6 +65,9 @@ jobs:
         continue-on-error: true
 
       # ── OSN Legacy English (extra channels) ───────────────
+      - name: Clear epg cache
+        run: rm -rf epg-src/.cache
+
       - name: Grab OSN Legacy EN guide
         run: |
           cd epg-src
