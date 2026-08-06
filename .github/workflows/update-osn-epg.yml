@@ -72,6 +72,20 @@ jobs:
             --output=OSN_LEGACY_EN.xml --days=5
         continue-on-error: true
 
+      - name: Debug Legacy EN output
+        run: |
+          if [ -f epg-src/OSN_LEGACY_EN.xml ]; then
+            echo "File exists, line count:"
+            wc -l epg-src/OSN_LEGACY_EN.xml
+            echo "Channel entries:"
+            grep "channel id" epg-src/OSN_LEGACY_EN.xml | head -30
+            echo "Programme count:"
+            grep -c "<programme" epg-src/OSN_LEGACY_EN.xml
+          else
+            echo "OSN_LEGACY_EN.xml does not exist"
+          fi
+        continue-on-error: true
+
       # ── OSN Legacy Arabic (extra channels) ────────────────
       - name: Grab OSN Legacy AR guide
         run: |
