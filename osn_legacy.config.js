@@ -54,6 +54,190 @@ module.exports = {
       if (Array.isArray(caches[cacheId])) {
         content.entries.push(...caches[cacheId])
       }
+
+      // DEBUG: log all guids when processing channel 311
+      if (channel.site_id === '311') {
+        console.log('ALL GUIDS IN RESPONSE:', content.entries.map(e => e.guid).join(', '))
+      }
+
+      content.entries
+        .filter(entry => entry.guid == channel.site_id)
+        .forEach(entry => {
+          if (Array.isArray(entry.listings)) {
+            const listings = entry.listings
+              .map(listing => {
+                const res = {
+                  title: dotProp(listing, `program.titleLocalized.${channel.lang}`),
+                  subTitle: dotProp(listing, `program.osnprogram$seriesTitleLocalized.${channel.lang}`),
+                  description: dotProp(listing, `program.descriptionLocalized.${channel.lang}`),
+                  start: dayjs.tz(listing.startTime, tz),
+                  stop: dayjs.tz(listing.endTime, tz),
+                  categories: (dotProp(listing, 'program.tags') || [])
+                    .map(tag => dotProp(tag, `titleLocalized.${channel.lang}`)),
+                  image: dotProp(listing, `program.thumbnails.landscapeTitleImage-${channel.lang}.url`),
+                  season: dotProp(listing, 'program.tvSeasonNumber'),
+                  episode: dotProp(listing, 'program.tvSeasonEpisodeNumber'),
+                  date: dotProp(listing, 'program.year')
+                }
+                if (res.subTitle) {
+                  const subTitle = res.title
+                  res.title = res.subTitle
+                  res.subTitle = subTitle
+                }
+                if (res.date) {
+                  res.date = `${res.date}`
+                }
+                return res
+              })
+            programs.push(...listings)
+          }
+        })
+    }
+    return programs
+  },
+  async channels({ lang = 'ar' }) {
+    const channels = []
+    const items = await fetchChannels()
+    if (Array.isArray(items)) {
+      channels.push(...items.map(item => ({
+        lang,
+        site_id: item.guid,
+        name: item.title
+      })))
+    }
+    return channels
+  }
+}
+
+async function fetchChannels() {
+  if (allChannels === undefined) {
+    const result = await axios
+      .get('https://www.osn.com/apidata/channels?platform=Legacy', { headers: await getHeaders() })
+      .then(res => getDecryptedData(res.data))
+      .catch(console.error)
+
+    if (Array.isArray(result)) {
+      allChannels = result
+    }
+  }
+  return allChannels
+}
+
+async function getHeaders(data) {
+  if (dayjs.isDayjs(data)) {
+    data = (await getUrlData(data)).data
+  }
+  const res = { ...headers }
+  if (data) {
+    res['X-Encrypted-Data'] = getEncryptedData(data)
+  }
+  return res
+}
+
+async function getUrlData(date, first = true) {
+  const parts = []
+  const startOfDay = date.tz(tz).startOf('d')
+  const endOfDay = startOfDay.add(oneDayMs, 'ms')
+  const startStop = {
+    startTime: startOfDay.valueOf(),
+    endTime: endOfDay.valueOf()
+  }
+  await fetchChannels()
+  const segments = await getUrlSegments()
+  let i = 0
+  for (const v of segments) {
+    const data = {
+      url: `https://www.osn.com/apidata/tv-schedule-timeline?t=batch${++i}-time${
+          startStop.startTime
+        }-${
+          startStop.endTime
+        }-boxLegacy`,
+      data: {
+        channelGuid: v.join('|'),
+        ...startStop
+      }
+    }
+    if (first) {
+      return data
+    } else if (i === 1) {
+      continue
+    }
+    parts.push(data)
+  }
+  return parts
+}
+
+async function getUrlSegments() {
+  await fetchChannels()
+  const segments = []
+  const _channels = [...allChannels.map(item => item.guid)]
+  while (_channels.length) {
+    segments.push(_channels.splice(0, 5))
+  }
+  return segments
+}
+
+function getEncryptedData(data) {
+  return encrypt(JSON.stringify(data))
+}
+
+function getDecryptedData(data) {
+  if (typeof data === 'string' || Buffer.isBuffer(data)) {
+    data = JSON.parse(data)
+  }
+  if (data?.encrypted) {
+    data = JSON.parse(decrypt(data.encrypted))
+  }
+  return data
+}
+
+function encrypt(data, encoding = 'utf8') {
+  const cipher = crypto.createCipheriv(cipherName, cipherKey, cipherIv)
+  const encrypted = cipher.update(data, encoding, 'base64')
+  return (encrypted + cipher.final('base64'))
+}
+
+function decrypt(data, encoding = 'utf8') {
+  const decipher = crypto.createDecipheriv(cipherName, cipherKey, cipherIv)
+  const decrypted = decipher.update(data, 'base64', encoding)
+  return (decrypted + decipher.final(encoding))
+}
+
+function dotProp(o, prop) {
+  if (typeof o === 'object') {
+    const props = prop.split('.')
+    while (props.length) {
+      const k = props.shift()
+      if (o[k] !== undefined) {
+        o = o[k]
+      } else {
+        break
+      }
+    }
+    if (props.length === 0) {
+      return o
+    }
+  }
+}    if (Array.isArray(content?.entries)) {
+      const cacheId = date.format('YYYYMMDD')
+      if (caches[cacheId] === undefined) {
+        caches[cacheId] = []
+        const segments = await getUrlData(date, false)
+        while (segments.length) {
+          const segment = segments.shift()
+          const result = await axios
+            .get(segment.url, { headers: await getHeaders(segment.data) })
+            .then(res => getDecryptedData(res.data))
+            .catch(err => console.error(`${segment.url}: ${err.message}!`))
+          if (Array.isArray(result?.entries)) {
+            caches[cacheId].push(...result.entries)
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 5000))
+      }
+      if (Array.isArray(caches[cacheId])) {
+        content.entries.push(...caches[cacheId])
+      }
       content.entries
         .filter(entry => entry.guid == channel.site_id)
         .forEach(entry => {
