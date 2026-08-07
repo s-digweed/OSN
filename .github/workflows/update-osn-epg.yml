@@ -34,6 +34,17 @@ jobs:
       - name: Copy custom AR channels file
         run: cp osn_legacy_ar.channels.xml epg-src/sites/osn_legacy/osn_legacy_ar.channels.xml
 
+      # ── Parse Legacy channels to find real GUIDs ──────────
+      - name: Parse OSN Legacy channels to find real GUIDs
+        run: |
+          cd epg-src
+          npm run channels:parse -- --config=./sites/osn_legacy/osn_legacy.config.js \
+            --output=./sites/osn_legacy/osn_legacy_parsed.channels.xml \
+            --set=lang:en
+          echo "=== PARSED CHANNELS ==="
+          cat ./sites/osn_legacy/osn_legacy_parsed.channels.xml | head -100
+        continue-on-error: true
+
       # ── OSN Android English ───────────────────────────────
       - name: Parse OSN Android EN channels
         run: |
@@ -109,7 +120,7 @@ jobs:
       # ── Gzip and commit ───────────────────────────────────
       - name: Gzip EN
         run: |
-          if [ -f epg-src/OSN_EN.xml ]; then
+          if [ -f epg-src/OSN_EN.xml ]/; then
             gzip -f epg-src/OSN_EN.xml
             cp epg-src/OSN_EN.xml.gz OSN_EN.xml.gz
           fi
