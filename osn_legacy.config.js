@@ -35,13 +35,6 @@ module.exports = {
     const programs = []
     content = getDecryptedData(content)
 
-    if (channel.site_id === '311') {
-      console.log('DECRYPTED CONTENT TYPE:', typeof content)
-      console.log('CONTENT KEYS:', content ? Object.keys(content) : 'null')
-      console.log('ENTRIES LENGTH:', content?.entries?.length)
-      console.log('CONTENT SAMPLE:', JSON.stringify(content).substring(0, 500))
-    }
-
     if (Array.isArray(content?.entries)) {
       const cacheId = date.format('YYYYMMDD')
       if (caches[cacheId] === undefined) {
@@ -61,10 +54,6 @@ module.exports = {
       }
       if (Array.isArray(caches[cacheId])) {
         content.entries.push(...caches[cacheId])
-      }
-
-      if (channel.site_id === '311') {
-        console.log('ALL GUIDS IN RESPONSE:', content.entries.map(e => e.guid).join(', '))
       }
 
       content.entries
@@ -179,7 +168,7 @@ async function getUrlSegments() {
   const segments = []
   const _channels = [...allChannels.map(item => item.guid)]
   while (_channels.length) {
-    segments.push(_channels.splice(0, 5))
+    segments.push(_channels.splice(0, 1))
   }
   return segments
 }
