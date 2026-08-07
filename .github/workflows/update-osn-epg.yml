@@ -28,12 +28,6 @@ jobs:
           mkdir -p epg-src/sites/osn_legacy
           cp osn_legacy.config.js epg-src/sites/osn_legacy/osn_legacy.config.js
 
-      - name: Copy custom EN channels file
-        run: cp osn_legacy_en.channels.xml epg-src/sites/osn_legacy/osn_legacy_en.channels.xml
-
-      - name: Copy custom AR channels file
-        run: cp osn_legacy_ar.channels.xml epg-src/sites/osn_legacy/osn_legacy_ar.channels.xml
-
       # ── Parse Legacy channels ─────────────────────────────
       - name: Parse OSN Legacy EN channels
         run: |
@@ -83,7 +77,7 @@ jobs:
             --output=OSN_ANDROID_AR.xml --days=5
         continue-on-error: true
 
-      # ── OSN Legacy English (all channels, then filter) ────
+      # ── OSN Legacy English ────────────────────────────────
       - name: Clear epg cache
         run: rm -rf epg-src/.cache
 
@@ -94,39 +88,11 @@ jobs:
             --output=OSN_LEGACY_EN_FULL.xml --days=5
         continue-on-error: true
 
-      - name: Filter Legacy EN to target channels only
-        run: |
-          python3 -c "
-import xml.etree.ElementTree as ET
-import os
-
-target_ids = {'5674','5673','4514','4513','5675','5676','311','312','216','224','209','220','223','211','203','202','217'}
-
-if not os.path.exists('epg-src/OSN_LEGACY_EN_FULL.xml'):
-    print('No Legacy EN file to filter')
-    exit()
-
-tree = ET.parse('epg-src/OSN_LEGACY_EN_FULL.xml')
-root = tree.getroot()
-new_root = ET.Element('tv')
-
-for child in root:
-    if child.tag == 'channel' and child.get('id') in target_ids:
-        new_root.append(child)
-    elif child.tag == 'programme' and child.get('channel') in target_ids:
-        new_root.append(child)
-
-ET.ElementTree(new_root).write('epg-src/OSN_LEGACY_EN.xml', encoding='UTF-8', xml_declaration=True)
-print('Filtered EN done')
-
-for tid in target_ids:
-    count = sum(1 for c in new_root if c.tag == 'programme' and c.get('channel') == tid)
-    name = next((c.find('display-name').text for c in new_root if c.tag == 'channel' and c.get('id') == tid), tid)
-    print(f'{name} ({tid}): {count} programmes')
-"
+      - name: Filter Legacy EN to target channels
+        run: python3 filter_legacy_en.py
         continue-on-error: true
 
-      # ── OSN Legacy Arabic (all channels, then filter) ─────
+      # ── OSN Legacy Arabic ─────────────────────────────────
       - name: Grab OSN Legacy AR guide
         run: |
           cd epg-src
@@ -134,36 +100,8 @@ for tid in target_ids:
             --output=OSN_LEGACY_AR_FULL.xml --days=5
         continue-on-error: true
 
-      - name: Filter Legacy AR to target channels only
-        run: |
-          python3 -c "
-import xml.etree.ElementTree as ET
-import os
-
-target_ids = {'5674','5673','4514','4513','5675','5676','311','312','216','224','209','220','223','211','203','202','217'}
-
-if not os.path.exists('epg-src/OSN_LEGACY_AR_FULL.xml'):
-    print('No Legacy AR file to filter')
-    exit()
-
-tree = ET.parse('epg-src/OSN_LEGACY_AR_FULL.xml')
-root = tree.getroot()
-new_root = ET.Element('tv')
-
-for child in root:
-    if child.tag == 'channel' and child.get('id') in target_ids:
-        new_root.append(child)
-    elif child.tag == 'programme' and child.get('channel') in target_ids:
-        new_root.append(child)
-
-ET.ElementTree(new_root).write('epg-src/OSN_LEGACY_AR.xml', encoding='UTF-8', xml_declaration=True)
-print('Filtered AR done')
-
-for tid in target_ids:
-    count = sum(1 for c in new_root if c.tag == 'programme' and c.get('channel') == tid)
-    name = next((c.find('display-name').text for c in new_root if c.tag == 'channel' and c.get('id') == tid), tid)
-    print(f'{name} ({tid}): {count} programmes')
-"
+      - name: Filter Legacy AR to target channels
+        run: python3 filter_legacy_ar.py
         continue-on-error: true
 
       # ── Merge Android + Legacy ────────────────────────────
