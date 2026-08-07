@@ -58,7 +58,7 @@ jobs:
         run: |
           cd epg-src
           npm run grab -- --channels=./sites/osn.com/osn.com_en.channels.xml \
-            --output=OSN_ANDROID_EN.xml --days=5
+            --output=OSN_ANDROID_EN.xml --days=4
         continue-on-error: true
 
       # ── OSN Android Arabic ────────────────────────────────
@@ -74,7 +74,7 @@ jobs:
         run: |
           cd epg-src
           npm run grab -- --channels=./sites/osn.com/osn.com_ar.channels.xml \
-            --output=OSN_ANDROID_AR.xml --days=5
+            --output=OSN_ANDROID_AR.xml --days=4
         continue-on-error: true
 
       # ── OSN Legacy English ────────────────────────────────
@@ -85,7 +85,7 @@ jobs:
         run: |
           cd epg-src
           npm run grab -- --channels=./sites/osn_legacy/osn_legacy_parsed_en.channels.xml \
-            --output=OSN_LEGACY_EN_FULL.xml --days=5
+            --output=OSN_LEGACY_EN_FULL.xml --days=4
         continue-on-error: true
 
       - name: Filter Legacy EN to target channels
@@ -97,7 +97,7 @@ jobs:
         run: |
           cd epg-src
           npm run grab -- --channels=./sites/osn_legacy/osn_legacy_parsed_ar.channels.xml \
-            --output=OSN_LEGACY_AR_FULL.xml --days=5
+            --output=OSN_LEGACY_AR_FULL.xml --days=4
         continue-on-error: true
 
       - name: Filter Legacy AR to target channels
